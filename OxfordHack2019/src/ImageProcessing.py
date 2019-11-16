@@ -4,9 +4,11 @@ Created on 16 Nov 2019
 @author: George
 '''
 
+import random
 import PIL
 import cv2 as cv
 import numpy as np
+from cv2 import line
 
 class ImageProcessor(object):
 
@@ -33,7 +35,8 @@ class ImageProcessor(object):
         #self.show_image('edges2', edgesIm)
         
         lineList = self.get_lines(edgesIm)
-        self.display_lines(self.initial, lineList)
+        #self.display_lines(self.initial, lineList)
+        self.display_xy_lines(self.initial, lineList)
         
         print(lineList)
         
@@ -97,9 +100,67 @@ class ImageProcessor(object):
         return newImage
     
     def get_lines(self, edgeImage):
-        #                     target,   rho, theta, something else?
+        #                     target,   rho, theta, thresh required to identify
         lines = cv.HoughLines(edgeImage,1,np.pi/180,200)
-        return lines
+        hLines = []
+        vLines = []
+        
+        for line in lines:
+            for (rho, theta) in line:
+                lineLength = 10000
+                cT = np.cos(theta)
+                sT = np.sin(theta)
+                x0 = cT*rho
+                y0 = sT*rho
+                x1 = int(x0 + lineLength*(-sT))
+                y1 = int(y0 + lineLength*(cT))
+                x2 = int(x0 - lineLength*(-sT))
+                y2 = int(y0 - lineLength*(cT))
+                m = (y2-y1) / (x2-x1)
+                c = y2 - m*x2
+                if 1 < theta < 2:
+                    print(theta)
+                    hLines.append([(m, c)])
+                else:
+                    print(theta, 'v')
+                    vLines.append([(m, c)])
+                    
+        #self.display_lines(self.initial, hLines)
+        halfY = edgeImage.shape[1] // 2
+        closest = None
+        closestX = 10000
+        furthest = None
+        furthestX = 0
+        for line in vLines:
+            m,c = line[0]
+            x = (halfY - c)/m
+            if x < closestX:
+                closestX = x
+                closest = line
+            if x > furthestX:
+                furthestX = x
+                furthest = line
+        
+        newLines = [closest, furthest]
+        
+        halfX = edgeImage.shape[0] // 2
+        closest = None
+        closestY = 10000
+        furthest = None
+        furthestY = 0
+        for line in hLines:
+            m,c = line[0]
+            y = (halfX - c)/m
+            if y < closestY:
+                closestY = y
+                closest = line
+            if y > furthestY:
+                furthestY = y
+                furthest = line
+            
+        newLines = newLines + [closest, furthest]
+        
+        return newLines
         
     
     def display_lines(self, im, lineList):
@@ -115,9 +176,10 @@ class ImageProcessor(object):
                 y1 = int(y0 + lineLength*(cT))
                 x2 = int(x0 - lineLength*(-sT))
                 y2 = int(y0 - lineLength*(cT))
+            
             cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),2)
-        
-        self.show_image("line image", imCopy)
+    
+        self.show_image("line image" + str(random.randint(0,1000)), imCopy)
 
     def resize(self, im, factor):
         return cv.resize(im, (0,0), fx=factor, fy=factor)
