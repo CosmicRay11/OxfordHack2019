@@ -50,10 +50,8 @@ class ImageProcessor(object):
         (b,g,r) = cv.split(im)
         
         m = np.maximum(np.maximum(b,g), r)
-        
-        b[True] = b
+
         g[g<m] = 0
-        r[True] = r
         
         newIm = cv.merge([b,g,r])
         return newIm
@@ -69,21 +67,31 @@ class ImageProcessor(object):
         return newIm
 
     def exclude_rb(self, im):
+        (b,g,r) = cv.split(im)
+        
+        m = np.minimum(np.minimum(b,g), r)
+
+        g[g<(1.5*m)] = 0
+        
+        newIm = cv.merge([b,g,r])
         
         lowerFilter = np.array([0, 1,0])
         upperFilter = np.array([200,255,200])
         
-        mask = cv.inRange(im, lowerFilter, upperFilter)
-        newIm = cv.bitwise_and(im,im, mask = mask)
+        mask = cv.inRange(newIm, lowerFilter, upperFilter)
+        newIm = cv.bitwise_and(newIm,newIm, mask = mask)
+
         return newIm
     
     def do_edge_detection(self,im):
-        edgeImage = cv.Canny(im, 5, 10)
-        self.show_image("edge1", edgeImage)
-        kernel = np.ones((10,10),np.float32)/10
-        blurred = cv.filter2D(edgeImage,-1,kernel)
-        self.show_image("blur", blurred)
-        newImage = cv.Canny(blurred, 100, 200)
+        #edgeImage = cv.Canny(im, 5, 10)
+        #self.show_image("edge1", edgeImage)
+        #kernel = np.ones((10,10),np.float32)/10
+        #blurred = cv.filter2D(edgeImage,-1,kernel)
+        #self.show_image("blur", blurred)
+
+        self.show_image("newimage", im)
+        newImage = cv.Canny(im, 100, 200)
         return newImage
 
     def resize(self, im, factor):
@@ -96,7 +104,7 @@ if __name__ == "__main__":
     defUrl2 = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191116_100356.jpg"
     defUrl3 = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191217.jpg"
     defUrl4 = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191345.jpg"
-    i = ImageProcessor(defUrl2)
+    i = ImageProcessor(defUrl4)
     
     
         
