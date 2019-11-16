@@ -19,11 +19,14 @@ class ImageProcessor(object):
         
         self.initial = cv.imread(url)
         
-    def extract_circles(self, tableWidth):
+    def extract_circles(self, im, tableWidth):
+        
         expected = 0.05 * tableWidth
         
         circleImage = self.initial.copy()
         im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
+        im = cv.Canny(im, 50,200)
+        self.show_image("circle preprocessed", im)
         circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,100,5,
                             param1=50,param2=30,
                             minRadius=int(expected * 0.25),maxRadius=int(expected*4))
@@ -35,6 +38,48 @@ class ImageProcessor(object):
         self.show_image("circle image", circleImage)
         cv.waitKey(0)
         cv.destroyAllWindows()
+    
+    def cut_board(self, lines):
+        im = self.initial.copy()
+        (x1,y1), (x2,y2), (x3,y3), (x4,y4) = self.get_corners(lines)
+        
+        pts = np.array([[x1,y1], [x2,y2], [x3,y3], [x4,y4]])
+        
+        #make bounding rectangle and crop to it
+        rect = cv.boundingRect(pts)
+        x,y,w,h = rect
+        croped = im[y:y+h, x:x+w].copy()
+        
+        #make mask
+        pts = pts - pts.min(axis=0)
+        mask = np.zeros(croped.shape[:2], np.uint8)
+        cv.drawContours(mask, [pts], -1, (255, 255, 255), -1, cv.LINE_AA)
+ 
+        # apply mask
+        dst = cv.bitwise_and(croped, croped, mask=mask)
+        
+        #print(lines)
+        angle = np.arctan(lines[3][0][0]) * (180/np.pi)
+        #print(angle)
+        #self.show_image('not rotated', dst)
+        rows,cols = dst.shape[0], dst.shape[1]
+
+        M = cv.getRotationMatrix2D((cols/2,rows/2),angle,1)
+        dst2 = cv.warpAffine(dst,M,(cols,rows))
+        
+        #self.show_image('rotated', dst2)
+
+        return dst2
+        
+    def get_corners(self, lines):
+        coords = []
+        ijs = [(0,2), (0,3), (1,3), (1,2)]
+        for (i,j) in ijs:  
+            (m1,c1), (m2,c2) = lines[i][0], lines[j][0]
+            x = (c2-c1) / (m1-m2)
+            y = m1*x + c1
+            coords.append((int(x),int(y)))
+        return coords
     
     def extract_board(self):
         greenIm = self.filter_green(self.initial)
@@ -227,7 +272,9 @@ if __name__ == "__main__":
     urls = [defUrl, defUrl2, defUrl3, defUrl4]
     for url in urls:
         i = ImageProcessor(url)
-        i.extract_board()
-        i.extract_circles(2500)
+        lines = i.extract_board()
+        cutBoard = i.cut_board(lines)
+        i.show_image("cut board", cutBoard)
+        #i.extract_circles(cutBoard, 2500)
         
         
