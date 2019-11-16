@@ -26,17 +26,19 @@ class ImageProcessor(object):
         
         circleImage = im.copy()
         
-        im = self.exclude_rb(im)
+        im = self.filter_for_balls(im)
         self.show_image("filtered", im)
-        im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
-        im = cv.Canny(im, 50,200)
+        im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+        im = cv.Canny(im, 100, 200)
+        
         #im = cv.bitwise_not(im)
-        kernel = np.ones((10,10),np.float32)/1
-        blurred = cv.filter2D(im,-1,kernel)
-        self.show_image("blur", blurred)
-        circles = cv.HoughCircles(blurred,cv.HOUGH_GRADIENT,5,200,
+        kernel = np.ones((5,5),np.float32)/4
+        im = cv.filter2D(im,-1,kernel)
+        #self.show_image("blur", blurred)
+        self.show_image("cannied", im)
+        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,1,200,
                             param1=50,param2=30,
-                            minRadius=25,maxRadius=int(expected*1.5))
+                            minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
         try:
             circles = np.uint16(np.around(circles))
             print(circles)
@@ -48,13 +50,16 @@ class ImageProcessor(object):
         self.show_image("circle image", circleImage)
     
     def filter_for_balls(self, im):
-        (b,g,r) = cv.split(im)
         
-        m = np.maximum(np.maximum(b,g), r)
+        hsv = cv.cvtColor(im, cv.COLOR_BGR2HSV)
 
-        g[g<m] = 0
+        lowerYellow = np.array([0,0,0])
+        upperYellow = np.array([35,255,255])
+    
+        mask = cv.inRange(hsv, lowerYellow, upperYellow)
+        res = cv.bitwise_and(im,im, mask= mask)
         
-        newIm = cv.merge([b,g,r])
+        newIm = cv.cvtColor(res, cv.COLOR_HSV2BGR)
         
         return newIm
     
