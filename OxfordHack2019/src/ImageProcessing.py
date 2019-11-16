@@ -150,7 +150,7 @@ class ImageProcessor(object):
         furthestY = 0
         for line in hLines:
             m,c = line[0]
-            y = (halfX - c)/m
+            y = m*halfX + c
             if y < closestY:
                 closestY = y
                 closest = line
@@ -177,7 +177,20 @@ class ImageProcessor(object):
                 x2 = int(x0 - lineLength*(-sT))
                 y2 = int(y0 - lineLength*(cT))
             
-            cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),2)
+            cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
+    
+        self.show_image("line image" + str(random.randint(0,1000)), imCopy)
+
+    def display_xy_lines(self, im, lineList):
+        imCopy = im.copy()
+        for line in lineList:
+            for (m,c) in line:
+                x1 = -10000
+                y1 = int(m*x1 + c)
+                x2 = 10000
+                y2 = int(m*x2 + c)
+            
+            cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
     
         self.show_image("line image" + str(random.randint(0,1000)), imCopy)
 
