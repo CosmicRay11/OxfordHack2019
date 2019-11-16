@@ -27,17 +27,17 @@ class ImageProcessor(object):
         circleImage = im.copy()
         
         im = self.filter_for_balls(im)
-        self.show_image("filtered", im)
+        #self.show_image("filtered", im)
         im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-        im = cv.Canny(im, 100, 200)
+        #im = cv.Canny(im, 100, 200)
         
         #im = cv.bitwise_not(im)
-        kernel = np.ones((5,5),np.float32)/4
-        im = cv.filter2D(im,-1,kernel)
+        #kernel = np.ones((10,10),np.float32)/4
+        #im = cv.filter2D(im,-1,kernel)
         #self.show_image("blur", blurred)
         self.show_image("cannied", im)
-        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,1,200,
-                            param1=50,param2=30,
+        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,5,100,
+                            param1=60,param2=30,
                             minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
         try:
             circles = np.uint16(np.around(circles))
@@ -61,6 +61,15 @@ class ImageProcessor(object):
         
         newIm = cv.cvtColor(res, cv.COLOR_HSV2BGR)
         
+        newIm = cv.bitwise_not(newIm)
+
+        lowerFilter = np.array([255,255,255])
+        upperFilter = np.array([255,255,255])
+        
+        mask = cv.inRange(newIm, lowerFilter, upperFilter)
+        newIm = cv.bitwise_and(newIm,newIm, mask = mask)        
+        
+        newIm = cv.bitwise_not(newIm)
         return newIm
     
     def cut_board(self, lines):
@@ -291,6 +300,7 @@ if __name__ == "__main__":
     defUrl3 = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191217.jpg"
     defUrl4 = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191345.jpg"
     urls = [defUrl, defUrl2, defUrl3, defUrl4]
+    #random.shuffle(urls)
     for url in urls:
         i = ImageProcessor(url)
         lines = i.extract_board()
