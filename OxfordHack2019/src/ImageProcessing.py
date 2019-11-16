@@ -17,6 +17,42 @@ class ImageProcessor(object):
         self.baseUrl = "C:\\Users\\George\\Pictures\\Hack_tests"
         
         self.initial = cv.imread(url)
+    
+    def label_balls(self, im, tableWidth):
+        
+        circles = self.extract_circles(im, tableWidth)
+        print(circles.shape)
+        valids = []
+        
+        self.show_image("label", im)
+        cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\circle_stuff.jpg", im)
+        
+        for i,circle in enumerate(circles[0,:]):
+            x,y = (int(circle[0]),int(circle[1]))
+
+            if 0<x and x<im.shape[1] and y>0 and y< im.shape[0]:
+                
+                working = True
+                
+                
+                for x1 in range(x-5, x+5):
+                    for y1 in range(y-5,y+5):
+                        (b,g,r) = im[y1,x1]
+                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2 or r*g*b > 150**3:
+                            working = False
+                if working:
+                    valids.append([x,y,int(circle[2])])       
+
+        print(circles.shape)
+        
+        try:
+            for i in valids:
+                cv.circle(im,(i[0],i[1]),i[2],(0,0,0),2)
+                cv.circle(im,(i[0],i[1]),2,(0,0,0),3)
+        except:
+            pass
+        self.show_image("circle image2", im)
+        
         
     def extract_circles(self, im, tableWidth):
         
@@ -35,7 +71,7 @@ class ImageProcessor(object):
         #im = cv.filter2D(im,-1,kernel)
         #self.show_image("blur", blurred)
         self.show_image("cannied", im)
-        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,5,100,
+        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,10,100,
                             param1=60,param2=30,
                             minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
         try:
@@ -47,6 +83,7 @@ class ImageProcessor(object):
         except:
             pass
         self.show_image("circle image", circleImage)
+        return circles
     
     def filter_for_balls(self, im):
         
@@ -305,7 +342,7 @@ if __name__ == "__main__":
         lines = i.extract_board()
         cutBoard = i.cut_board(lines)
         i.show_image("cut board", cutBoard)
-        i.extract_circles(cutBoard, 2500)
+        i.label_balls(cutBoard, 2500)
         
         cv.waitKey(0)
         cv.destroyAllWindows()
