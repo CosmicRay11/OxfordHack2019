@@ -19,9 +19,27 @@ class ImageProcessor(object):
         
         self.initial = cv.imread(url)
         
+    def extract_circles(self, tableWidth):
+        expected = 0.05 * tableWidth
+        
+        circleImage = self.initial.copy()
+        im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
+        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,100,5,
+                            param1=50,param2=30,
+                            minRadius=int(expected * 0.25),maxRadius=int(expected*4))
+        circles = np.uint16(np.around(circles))
+        
+        for i in circles[0,:]:
+            cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
+            cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
+        self.show_image("circle image", circleImage)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+    
+    def extract_board(self):
         greenIm = self.filter_green(self.initial)
         
-        smallGreenIm = self.resize(greenIm, 0.2)
+        #smallGreenIm = self.resize(greenIm, 0.2)
         #self.show_image("filtered_green", smallGreenIm)
         
         whiteFreeIm = self.remove_white(greenIm)
@@ -38,18 +56,19 @@ class ImageProcessor(object):
         #self.display_lines(self.initial, lineList)
         self.display_xy_lines(self.initial, lineList)
         
-        print(lineList)
+        #print(lineList)
         
         cv.waitKey(0)
         cv.destroyAllWindows()
+        return lineList   
         
     def show_image(self,label, im):
-        print(im.shape)
+        #print(im.shape)
         width, height = im.shape[0], im.shape[1]
-        print(width, height)
+        #print(width, height)
         if width > 800:
             factor = 800/width
-            print(factor)
+            #print(factor)
             im = self.resize(im, factor)
         
         cv.imshow(label, im)   
@@ -193,6 +212,7 @@ class ImageProcessor(object):
             cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
     
         self.show_image("line image" + str(random.randint(0,1000)), imCopy)
+    
 
     def resize(self, im, factor):
         return cv.resize(im, (0,0), fx=factor, fy=factor)
@@ -207,7 +227,7 @@ if __name__ == "__main__":
     urls = [defUrl, defUrl2, defUrl3, defUrl4]
     for url in urls:
         i = ImageProcessor(url)
-    
-
+        i.extract_board()
+        i.extract_circles(2500)
         
         
