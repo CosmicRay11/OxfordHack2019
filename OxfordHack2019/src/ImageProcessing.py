@@ -19,6 +19,7 @@ class ImageProcessor(object):
         self.initial = cv.imread(url)
     
     def label_balls(self, im, tableWidth):
+        imcopy = im.copy()
         
         circles, whiteBall, blackBall = self.extract_circles(im, tableWidth)
         valids = []
@@ -43,14 +44,63 @@ class ImageProcessor(object):
                 if working:
                     valids.append([x,y,int(circle[2])])       
         
+        
+        hList = []
+        for i,circle in enumerate(valids):
+            x,y = circle[0], circle[1]
+               
+            #print(circle)
+            hSum = 0
+            hCount = 0
+            if 0<x-rad//2 and x+rad//2<im.shape[1] and y-rad//2>0 and y+rad//2< im.shape[0]:   
+                for x1 in range(x-rad//2, x+rad//2, rad//10):
+                    for y1 in range(y-rad//2,y+rad//2, rad//10):
+                        hCount += 1
+                        pix = np.uint8([[imcopy[y,x]]])
+                        #print(pix)
+                        hsv = cv.cvtColor(pix, cv.COLOR_BGR2HSV)
+                        h,s,v = cv.split(hsv)
+                        hSum += h[0][0]
+                
+                hList.append(hSum/hCount)
+        
+        hAverage = sum(hList) / len(hList)
+        print(hAverage)
+        
+        for i,circle in enumerate(valids):
+            
+            if hAverage < 50:
+                if hList[i] > hAverage:
+                    circle.append('R')
+                else:
+                    circle.append('Y')
+            else:
+                if hList[i] < hAverage:
+                    circle.append('R')
+                else:
+                    circle.append('Y') 
+                
+        whiteBall.append("W")
+        blackBall.append("B")
+        allBalls = valids + [whiteBall] + [blackBall]
+        print(allBalls)
+        
         try:
-            for i in valids+[whiteBall]+[blackBall]:
-                cv.circle(im,(i[0],i[1]),i[2],(0,0,0),2)
-                cv.circle(im,(i[0],i[1]),2,(0,0,0),3)
+            for i in allBalls:
+                if i[3] == 'Y':
+                    col = (255,255,0)
+                if i[3] == 'R':
+                    col = (0,255,255)
+                if i[3] == 'W':
+                    col = (0,0,0)
+                if i[3] == 'B':
+                    col = (255,255,255)
+                cv.circle(im,(i[0],i[1]),i[2],col,2)
+                cv.circle(im,(i[0],i[1]),2,col,3)
         except:
             pass
-        
         self.show_image("circle image2", im)
+        return allBalls
         
     def get_white_ball(self, im, tableWidth,expected):        
         whiteImage = im.copy()
@@ -145,7 +195,7 @@ class ImageProcessor(object):
         circleImage = im.copy()
         
         copy = im.copy()
-        im = cv.circle(copy, (whiteBall[0], whiteBall[1]), whiteBall[2], (0,0,0), -1)
+        #im = cv.circle(copy, (whiteBall[0], whiteBall[1]), whiteBall[2], (0,0,0), -1)
         
         im = self.filter_for_balls(im)
         #self.show_image("filtered", im)
@@ -163,8 +213,8 @@ class ImageProcessor(object):
         try:
             circles = np.uint16(np.around(circles))
             for i in circles[0,:]:
-                cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
-                cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
+                cv.circle(circleImage,(i[0],i[1]),i[2],(255,255,0),2)
+                cv.circle(circleImage,(i[0],i[1]),2,(255,255,0),3)
         except:
             pass
         
@@ -461,7 +511,7 @@ if __name__ == "__main__":
         lines = i.extract_board()
         cutBoard = i.cut_board(lines)
         i.show_image("cut board", cutBoard)
-        i.label_balls(cutBoard, 2500)
+        balls = i.label_balls(cutBoard, 2500)
         
         cv.waitKey(0)
         cv.destroyAllWindows()
