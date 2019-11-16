@@ -29,14 +29,14 @@ class ImageProcessor(object):
         im = self.filter_for_balls(im)
         #self.show_image("filtered", im)
         im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-        #im = cv.Canny(im, 100, 200)
+        im = cv.Canny(im, 100, 200)
         
         #im = cv.bitwise_not(im)
-        #kernel = np.ones((10,10),np.float32)/4
-        #im = cv.filter2D(im,-1,kernel)
+        kernel = np.ones((10,10),np.float32)/4
+        im = cv.filter2D(im,-1,kernel)
         #self.show_image("blur", blurred)
         self.show_image("cannied", im)
-        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,5,100,
+        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT, 5,100,
                             param1=60,param2=30,
                             minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
         try:
@@ -55,21 +55,29 @@ class ImageProcessor(object):
 
         lowerYellow = np.array([0,0,0])
         upperYellow = np.array([35,255,255])
+        
+        lowerRed = np.array([100,0,0])
+        upperRed = np.array([130,255,255])
     
-        mask = cv.inRange(hsv, lowerYellow, upperYellow)
+        maskYellow = cv.inRange(hsv, lowerYellow, upperYellow)
+        maskRed = cv.inRange(hsv, lowerRed, upperRed)
+        mask = cv.bitwise_or(maskRed,maskYellow)
         res = cv.bitwise_and(im,im, mask= mask)
         
         newIm = cv.cvtColor(res, cv.COLOR_HSV2BGR)
-        
+        self.show_image("filtered0", newIm)
         newIm = cv.bitwise_not(newIm)
+        
 
         lowerFilter = np.array([255,255,255])
         upperFilter = np.array([255,255,255])
         
         mask = cv.inRange(newIm, lowerFilter, upperFilter)
         newIm = cv.bitwise_and(newIm,newIm, mask = mask)        
-        
+        self.show_image("filtered", newIm)
         newIm = cv.bitwise_not(newIm)
+        
+        
         return newIm
     
     def cut_board(self, lines):
@@ -301,7 +309,7 @@ if __name__ == "__main__":
     defUrl4 = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191345.jpg"
     urls = [defUrl, defUrl2, defUrl3, defUrl4]
     #random.shuffle(urls)
-    for url in urls:
+    for url in [urls[1]]:
         i = ImageProcessor(url)
         lines = i.extract_board()
         cutBoard = i.cut_board(lines)
