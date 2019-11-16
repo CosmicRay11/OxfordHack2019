@@ -20,7 +20,7 @@ class ImageProcessor(object):
     
     def label_balls(self, im, tableWidth):
         
-        circles, whiteBall = self.extract_circles(im, tableWidth)
+        circles, whiteBall, blackBall = self.extract_circles(im, tableWidth)
         valids = []
         
         self.show_image("label", im)
@@ -44,11 +44,12 @@ class ImageProcessor(object):
                     valids.append([x,y,int(circle[2])])       
         
         try:
-            for i in valids+[whiteBall]:
+            for i in valids+[whiteBall]+[blackBall]:
                 cv.circle(im,(i[0],i[1]),i[2],(0,0,0),2)
                 cv.circle(im,(i[0],i[1]),2,(0,0,0),3)
         except:
             pass
+        
         self.show_image("circle image2", im)
         
     def get_white_ball(self, im, tableWidth,expected):        
@@ -89,6 +90,46 @@ class ImageProcessor(object):
         
 
         return whiteBall
+
+    def get_black_ball(self, im, tableWidth,expected):        
+        blackImage = im.copy()
+        blackImage = self.filter_for_black(blackImage)
+        blackImage = cv.cvtColor(blackImage, cv.COLOR_BGR2GRAY)
+        self.show_image("black image for circles", blackImage)
+        blackCircle = cv.HoughCircles(blackImage,cv.HOUGH_GRADIENT,10,200,
+                            param1=60,param2=30,
+                            minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
+        
+        blackBall = None
+        
+        valids = []
+        for i,circle in enumerate(blackCircle[0,:10]):
+            x,y = (int(circle[0]),int(circle[1]))
+            rad = int(circle[2])
+
+            if 0<x-rad//2 and x+rad//2<im.shape[1] and y-rad//2>0 and y+rad//2< im.shape[0]:
+                
+                working = 0
+                
+                
+                for x1 in range(x-rad//2, x+rad//2, rad//10):
+                    for y1 in range(y-rad//2,y+rad//2, rad//10):
+                        (b,g,r) = im[y1,x1]
+                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2 or int(r)*int(g)*int(b) < 150*150*150:
+                            working += 1
+                if working == 0 and blackBall == None:
+                    blackBall = [x,y,int(circle[2])]
+                    print("---------------------", blackBall)
+                else:
+                    valids.append([working,x,y,int(circle[2])])
+        
+        if blackBall == None:
+            v = valids[0]
+            v.pop(0)
+            blackBall = v
+        
+        print('black ball', blackBall)
+        return blackBall
     
     
         
@@ -98,6 +139,8 @@ class ImageProcessor(object):
         expected = 75
         
         whiteBall = self.get_white_ball(im, tableWidth, expected)
+        
+        blackBall = self.get_black_ball(im, tableWidth, expected)
         
         circleImage = im.copy()
         
@@ -124,8 +167,9 @@ class ImageProcessor(object):
                 cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
         except:
             pass
-        self.show_image("circle image", circleImage)
-        return circles, whiteBall
+        
+        #self.show_image("circle image", circleImage)
+        return circles, whiteBall, blackBall
     
     def filter_for_white(self,im):
         #=======================================================================
@@ -138,7 +182,27 @@ class ImageProcessor(object):
         mask = cv.inRange(im, lowerFilter, upperFilter)
         newIm = cv.bitwise_and(im,im, mask = mask)
         
-        self.show_image("white image", newIm)
+        
+        #self.show_image("white image", newIm)
+
+        return newIm
+
+    def filter_for_black(self,im):
+        #=======================================================================
+        # average = im.mean(axis=0).mean(axis=0)
+        # print(average)
+        #=======================================================================
+        im = cv.bitwise_not(im)
+        
+        self.show_image("negative image", im)
+        
+        lowerFilter = np.array([200, 200,200])
+        upperFilter = np.array([255,255,255])
+        
+        mask = cv.inRange(im, lowerFilter, upperFilter)
+        newIm = cv.bitwise_and(im,im, mask = mask)
+        
+        self.show_image("black image", newIm)
 
         return newIm
     
@@ -364,7 +428,7 @@ class ImageProcessor(object):
             
             cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
     
-        self.show_image("line image" + str(random.randint(0,1000)), imCopy)
+        #self.show_image("line image" + str(random.randint(0,1000)), imCopy)
 
     def display_xy_lines(self, im, lineList):
         imCopy = im.copy()
