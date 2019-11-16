@@ -20,8 +20,7 @@ class ImageProcessor(object):
     
     def label_balls(self, im, tableWidth):
         
-        circles = self.extract_circles(im, tableWidth)
-        print(circles.shape)
+        circles, whiteBall = self.extract_circles(im, tableWidth)
         valids = []
         
         self.show_image("label", im)
@@ -29,37 +28,81 @@ class ImageProcessor(object):
         
         for i,circle in enumerate(circles[0,:]):
             x,y = (int(circle[0]),int(circle[1]))
+            rad = int(circle[2])
 
-            if 0<x and x<im.shape[1] and y>0 and y< im.shape[0]:
+            if 0<x-rad//2 and x+rad//2<im.shape[1] and y-rad//2>0 and y+rad//2< im.shape[0]:
                 
                 working = True
                 
                 
-                for x1 in range(x-5, x+5):
-                    for y1 in range(y-5,y+5):
+                for x1 in range(x-rad//2, x+rad//2, rad//10):
+                    for y1 in range(y-rad//2,y+rad//2, rad//10):
                         (b,g,r) = im[y1,x1]
-                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2 or r*g*b > 150**3:
+                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2 or r*g*b > 150*150*150:
                             working = False
                 if working:
                     valids.append([x,y,int(circle[2])])       
-
-        print(circles.shape)
         
         try:
-            for i in valids:
+            for i in valids+[whiteBall]:
                 cv.circle(im,(i[0],i[1]),i[2],(0,0,0),2)
                 cv.circle(im,(i[0],i[1]),2,(0,0,0),3)
         except:
             pass
         self.show_image("circle image2", im)
         
+    def get_white_ball(self, im, tableWidth,expected):        
+        whiteImage = im.copy()
+        whiteImage = self.filter_for_white(whiteImage)
+        whiteImage = cv.cvtColor(whiteImage, cv.COLOR_BGR2GRAY)
+        whiteCircle = cv.HoughCircles(whiteImage,cv.HOUGH_GRADIENT,10,200,
+                            param1=60,param2=30,
+                            minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
+        
+        whiteBall = None
+        
+        valids = []
+        for i,circle in enumerate(whiteCircle[0,:10]):
+            x,y = (int(circle[0]),int(circle[1]))
+            rad = int(circle[2])
+
+            if 0<x-rad//2 and x+rad//2<im.shape[1] and y-rad//2>0 and y+rad//2< im.shape[0]:
+                
+                working = 0
+                
+                
+                for x1 in range(x-rad//2, x+rad//2, rad//10):
+                    for y1 in range(y-rad//2,y+rad//2, rad//10):
+                        (b,g,r) = im[y1,x1]
+                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2 or int(r)*int(g)*int(b) < 150*150*150:
+                            working += 1
+                if working == 0 and whiteBall == None:
+                    whiteBall = [x,y,int(circle[2])]
+                    print("---------------------", whiteBall)
+                else:
+                    valids.append([working,x,y,int(circle[2])])
+        
+        if whiteBall == None:
+            v = valids[0]
+            v.pop(0)
+            whiteBall = v
+        
+
+        return whiteBall
+    
+    
         
     def extract_circles(self, im, tableWidth):
         
         #expected = 0.05 * tableWidth
         expected = 75
         
+        whiteBall = self.get_white_ball(im, tableWidth, expected)
+        
         circleImage = im.copy()
+        
+        copy = im.copy()
+        im = cv.circle(copy, (whiteBall[0], whiteBall[1]), whiteBall[2], (0,0,0), -1)
         
         im = self.filter_for_balls(im)
         #self.show_image("filtered", im)
@@ -76,14 +119,28 @@ class ImageProcessor(object):
                             minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
         try:
             circles = np.uint16(np.around(circles))
-            print(circles)
             for i in circles[0,:]:
                 cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
                 cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
         except:
             pass
         self.show_image("circle image", circleImage)
-        return circles
+        return circles, whiteBall
+    
+    def filter_for_white(self,im):
+        #=======================================================================
+        # average = im.mean(axis=0).mean(axis=0)
+        # print(average)
+        #=======================================================================
+        lowerFilter = np.array([175, 175,175])
+        upperFilter = np.array([255,255,255])
+        
+        mask = cv.inRange(im, lowerFilter, upperFilter)
+        newIm = cv.bitwise_and(im,im, mask = mask)
+        
+        self.show_image("white image", newIm)
+
+        return newIm
     
     def filter_for_balls(self, im):
         
@@ -249,10 +306,8 @@ class ImageProcessor(object):
                 m = (y2-y1) / (x2-x1)
                 c = y2 - m*x2
                 if 1 < theta < 2:
-                    print(theta)
                     hLines.append([(m, c)])
                 else:
-                    print(theta, 'v')
                     vLines.append([(m, c)])
                     
         #self.display_lines(self.initial, hLines)
