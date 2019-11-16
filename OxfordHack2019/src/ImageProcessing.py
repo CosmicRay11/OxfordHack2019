@@ -27,15 +27,21 @@ class ImageProcessor(object):
         circleImage = im.copy()
         #im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
         im = cv.Canny(im, 50,200)
-        self.show_image("circle preprocessed", im)
-        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,1,20,
+        #im = cv.bitwise_not(im)
+        kernel = np.ones((10,10),np.float32)/10
+        blurred = cv.filter2D(im,-1,kernel)
+        self.show_image("blur", blurred)
+        circles = cv.HoughCircles(blurred,cv.HOUGH_GRADIENT,1,20,
                             param1=50,param2=30,
-                            minRadius=0,maxRadius=0)
-        circles = np.uint16(np.around(circles))
+                            minRadius=int(expected*0.5),maxRadius=int(expected*1.5))
+        try:
+            circles = np.uint16(np.around(circles))
         
-        for i in circles[0,:]:
-            cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
-            cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
+            for i in circles[0,:]:
+                cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
+                cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
+        except:
+            pass
         self.show_image("circle image", circleImage)
     
     def cut_board(self, lines):
