@@ -21,23 +21,22 @@ class ImageProcessor(object):
         
     def extract_circles(self, im, tableWidth):
         
-        expected = 0.05 * tableWidth
+        #expected = 0.05 * tableWidth
+        expected = 200
         
-        circleImage = self.initial.copy()
-        im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
+        circleImage = im.copy()
+        #im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
         im = cv.Canny(im, 50,200)
         self.show_image("circle preprocessed", im)
-        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,100,5,
+        circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,1,20,
                             param1=50,param2=30,
-                            minRadius=int(expected * 0.25),maxRadius=int(expected*4))
+                            minRadius=0,maxRadius=0)
         circles = np.uint16(np.around(circles))
         
         for i in circles[0,:]:
             cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
             cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
         self.show_image("circle image", circleImage)
-        cv.waitKey(0)
-        cv.destroyAllWindows()
     
     def cut_board(self, lines):
         im = self.initial.copy()
@@ -102,9 +101,6 @@ class ImageProcessor(object):
         self.display_xy_lines(self.initial, lineList)
         
         #print(lineList)
-        
-        cv.waitKey(0)
-        cv.destroyAllWindows()
         return lineList   
         
     def show_image(self,label, im):
@@ -275,6 +271,9 @@ if __name__ == "__main__":
         lines = i.extract_board()
         cutBoard = i.cut_board(lines)
         i.show_image("cut board", cutBoard)
-        #i.extract_circles(cutBoard, 2500)
+        i.extract_circles(cutBoard, 2500)
+        
+        cv.waitKey(0)
+        cv.destroyAllWindows()
         
         
