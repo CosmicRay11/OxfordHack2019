@@ -22,27 +22,41 @@ class ImageProcessor(object):
     def extract_circles(self, im, tableWidth):
         
         #expected = 0.05 * tableWidth
-        expected = 200
+        expected = 75
         
         circleImage = im.copy()
-        #im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
+        
+        im = self.exclude_rb(im)
+        self.show_image("filtered", im)
+        im = cv.cvtColor(circleImage, cv.COLOR_BGR2GRAY)
         im = cv.Canny(im, 50,200)
         #im = cv.bitwise_not(im)
-        kernel = np.ones((10,10),np.float32)/10
+        kernel = np.ones((10,10),np.float32)/1
         blurred = cv.filter2D(im,-1,kernel)
         self.show_image("blur", blurred)
-        circles = cv.HoughCircles(blurred,cv.HOUGH_GRADIENT,1,20,
+        circles = cv.HoughCircles(blurred,cv.HOUGH_GRADIENT,5,200,
                             param1=50,param2=30,
-                            minRadius=int(expected*0.5),maxRadius=int(expected*1.5))
+                            minRadius=25,maxRadius=int(expected*1.5))
         try:
             circles = np.uint16(np.around(circles))
-        
+            print(circles)
             for i in circles[0,:]:
                 cv.circle(circleImage,(i[0],i[1]),i[2],(0,0,0),2)
                 cv.circle(circleImage,(i[0],i[1]),2,(0,0,0),3)
         except:
             pass
         self.show_image("circle image", circleImage)
+    
+    def filter_for_balls(self, im):
+        (b,g,r) = cv.split(im)
+        
+        m = np.maximum(np.maximum(b,g), r)
+
+        g[g<m] = 0
+        
+        newIm = cv.merge([b,g,r])
+        
+        return newIm
     
     def cut_board(self, lines):
         im = self.initial.copy()
