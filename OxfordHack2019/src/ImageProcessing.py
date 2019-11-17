@@ -500,15 +500,26 @@ class ImageProcessor(object):
 class Projector(object):
 
     def __init__(self, balls, image, lines):
-        
+        print(lines[0])
+        #print(lines)
         angle = np.arctan(lines[3][0][0])
+        #print(angle)
+        #self.show_image('not rotated', dst)
+        rows,cols = image.shape[0], image.shape[1]
+
+        M = cv.getRotationMatrix2D((cols/2,rows/2),-angle,1)
+        rotatedIm = cv.warpAffine(image,M,(cols,rows))
         
         for ball in balls:
             x,y,rad,type = ball
             print(x,y)
-            x,y = self.rotate_coords((x,y), (image.shape[0], image.shape[1]), -angle)
-            print(x,y)
+            x,y = self.rotate_coords((x,y), (image.shape[0]//2, image.shape[1]//2), -angle)
             
+            x1 = (y-lines[2][0][0])/lines[2][0][1]
+            x2 = (y-lines[3][0][0])/lines[3][0][1]
+            
+            print(x,y, x1,x2)
+        
             
         cv.imshow("lines", cv.resize(image, (0,0), fx=0.2, fy=0.2))
     
