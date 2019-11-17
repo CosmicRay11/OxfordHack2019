@@ -39,7 +39,7 @@ class ImageProcessor(object):
                 for x1 in range(x-rad//2, x+rad//2, rad//10):
                     for y1 in range(y-rad//2,y+rad//2, rad//10):
                         (b,g,r) = im[y1,x1]
-                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2 or r*g*b > 150*150*150:
+                        if (b,g,r) == (0,0,0) or g > max(r,b)*1.2:
                             working = False
                 if working:
                     valids.append([x,y,int(circle[2])])       
@@ -496,7 +496,30 @@ class ImageProcessor(object):
 
     def resize(self, im, factor):
         return cv.resize(im, (0,0), fx=factor, fy=factor)
+
+class Projector(object):
+
+    def __init__(self, balls, image, lines):
+        
+        angle = np.arctan(lines[3][0][0])
+        
+        for ball in balls:
+            x,y,rad,type = ball
+            print(x,y)
+            x,y = self.rotate_coords((x,y), (image.shape[0], image.shape[1]), -angle)
+            print(x,y)
+            
+            
+        cv.imshow("lines", cv.resize(image, (0,0), fx=0.2, fy=0.2))
     
+    def rotate_coords(self, coords, origin, radians):
+        x, y = coords
+        ox, oy = origin
+    
+        qx = ox + np.cos(radians) * (x - ox) + np.sin(radians) * (y - oy)
+        qy = oy + -np.sin(radians) * (x - ox) + np.cos(radians) * (y - oy)
+    
+        return qx, qy
     
 
 if __name__ == "__main__":
@@ -512,6 +535,8 @@ if __name__ == "__main__":
         cutBoard = i.cut_board(lines)
         i.show_image("cut board", cutBoard)
         balls = i.label_balls(cutBoard, 2500)
+        
+        proj = Projector(balls, cutBoard, lines)
         
         cv.waitKey(0)
         cv.destroyAllWindows()
