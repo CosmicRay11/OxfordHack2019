@@ -27,7 +27,7 @@ class ImageProcessor(object):
         circles, whiteBall, blackBall = self.extract_circles(im, tableWidth)
         valids = []
         
-        self.show_image("label", im)
+        #self.show_image("label", im)
         cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\circle_stuff.jpg", im)
         
         for i,circle in enumerate(circles[0,:]):
@@ -102,7 +102,7 @@ class ImageProcessor(object):
                 cv.circle(im,(i[0],i[1]),2,col,3)
         except:
             pass
-        self.show_image("circle image2", im)
+        #self.show_image("circle image2", im)
         return allBalls
         
     def get_white_ball(self, im, tableWidth,expected):        
@@ -148,7 +148,7 @@ class ImageProcessor(object):
         blackImage = im.copy()
         blackImage = self.filter_for_black(blackImage)
         blackImage = cv.cvtColor(blackImage, cv.COLOR_BGR2GRAY)
-        self.show_image("black image for circles", blackImage)
+        #self.show_image("black image for circles", blackImage)
         blackCircle = cv.HoughCircles(blackImage,cv.HOUGH_GRADIENT,10,200,
                             param1=60,param2=30,
                             minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
@@ -209,7 +209,7 @@ class ImageProcessor(object):
         #kernel = np.ones((10,10),np.float32)/4
         #im = cv.filter2D(im,-1,kernel)
         #self.show_image("blur", blurred)
-        self.show_image("cannied", im)
+        #self.show_image("cannied", im)
         circles = cv.HoughCircles(im,cv.HOUGH_GRADIENT,10,100,
                             param1=60,param2=30,
                             minRadius=int(expected*0.2),maxRadius=int(expected*1.5))
@@ -247,7 +247,7 @@ class ImageProcessor(object):
         #=======================================================================
         im = cv.bitwise_not(im)
         
-        self.show_image("negative image", im)
+        #self.show_image("negative image", im)
         
         lowerFilter = np.array([200, 200,200])
         upperFilter = np.array([255,255,255])
@@ -255,7 +255,7 @@ class ImageProcessor(object):
         mask = cv.inRange(im, lowerFilter, upperFilter)
         newIm = cv.bitwise_and(im,im, mask = mask)
         
-        self.show_image("black image", newIm)
+        #self.show_image("black image", newIm)
 
         return newIm
     
@@ -494,7 +494,7 @@ class ImageProcessor(object):
             
             cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
     
-        self.show_image("line image" + str(random.randint(0,1000)), imCopy)
+        #self.show_image("line image" + str(random.randint(0,1000)), imCopy)
     
 
     def resize(self, im, factor):
@@ -523,29 +523,107 @@ class Projector(object):
             dist = abs (x1-x2)
             xratio = (x-x1) / dist
             
-            yratio = y / image.shape[1]
+            yratio = self.project(image, x,y, lines)
             
             print('x',xratio)
             print('y',yratio)
         
             xList.append(yratio*2)
             yList.append(xratio)
-            
+             
         xList = np.array(xList)
         yList = np.array(yList)
-        
+         
         fig, ax = plt.subplots(figsize=(12,6))
-        
+         
         plt.plot(xList, yList, marker='x', color='black', linestyle='None', markersize = 5.0)
-        
+         
         axes = plt.gca()
         axes.set_xlim([0,2])
         axes.set_ylim([0,1])
-        
-        
-        
+         
+         
+         
         plt.show()
     
+    def project(self, image, x, y, lines):
+        width, height = image.shape[0], image.shape[1]
+        A = (width//2, height)
+        B = (x,y)
+        C = self.get_halfway(image, lines)
+        D = (width//2, 0)
+        
+        ac = 1
+        BC = self.get_dist(B,C)
+        AD = self.get_dist(A,D)
+        AC = self.get_dist(A,C)
+        ad = 2
+        cd = 1
+        BD = self.get_dist(B,D)
+        
+        
+        bc = cd / ((ad*AC*BD / (ac*BC*AD)) - 1)
+        
+        dis = 1- bc
+        
+        print('bc is  ', bc)
+        
+        return dis
+    
+    def get_dist(self, coord1, coord2):
+        return ((coord1[0]-coord2[0])**2 + (coord1[1] - coord2[1])**2)**0.5
+    
+    def get_halfway(self,image, lines):
+        height,width = image.shape[0], image.shape[1]
+        cv.imshow("im", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
+        
+        m,c = lines[1][0]
+        x1 = -10000
+        y1 = int(m*x1 + c)
+        x2 = 10000
+        y2 = int(m*x2 + c)
+        
+        cv.line(image,(x1,y1),(x2,y2),(0,0,255),5)
+        
+        holex,holey = [], []
+        
+        for y in range(height//6, height//3, 1):
+            x = int((y-c)/ m) - 5
+            if x > 0 and x < width:
+                b,g,r = image[y,x]
+                if b<30 and g < 30 and r <30:
+                    holex.append(x)
+                    holey.append(y)
+            
+        if holex != [] and holey != []:
+            hole1 = [sum(holex) / len(holex), sum(holey)/ len(holey)]
+        else:
+            hole1 = None
+            raise Exception ("Ahhhh")
+        
+        
+        m,c = lines[0][0]
+        holex,holey = [], []
+        
+        for y in range(height//6, height//3, 1):
+            x = int((y-c)/ m) + 5
+            if x > 0 and x < width:
+                b,g,r = image[y,x]
+                if b<30 and g < 30 and r <30:
+                    holex.append(x)
+                    holey.append(y)
+            
+        if holex != [] and holey != []:
+            hole2 = [sum(holex) / len(holex), sum(holey)/ len(holey)]
+        else:
+            hole2 = None
+            raise Exception ("Ahhhh")
+        
+        halfWayMark = [width//2, int(hole1[1] + hole2[1]+50)//2]
+        cv.circle(image, (halfWayMark[0],halfWayMark[1]), 10, (0,255,255), 3 )
+        cv.imshow("im2", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
+        return halfWayMark
+        
     def rotate_coords(self, coords, origin, radians):
         x, y = coords
         ox, oy = origin

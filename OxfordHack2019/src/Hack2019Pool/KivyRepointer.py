@@ -38,7 +38,7 @@ class ImageProcessor(object):
         valids = []
         
         #self.show_image("label", im)
-        cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\circle_stuff.jpg", im)
+        #cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\circle_stuff.jpg", im)
         
         for i,circle in enumerate(circles[0,:]):
             x,y = (int(circle[0]),int(circle[1]))
@@ -555,6 +555,13 @@ class Projector(object):
         
         
         plt.show()
+    
+    def project(self, image, x, y):
+        width, height = image.shape[0], image.shape[1]
+        A = (width//2, height)
+        B = (x,y)
+        C = A
+        D = (width//2, 0)
     
     def rotate_coords(self, coords, origin, radians):
         x, y = coords
