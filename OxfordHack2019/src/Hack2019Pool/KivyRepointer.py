@@ -11,6 +11,7 @@ from kivy.uix.button import *
 from kivy.uix.widget import Widget
 from kivy.uix.camera import *
 from kivy.graphics import *
+from kivy.graphics.instructions import *
 from kivy.uix.image import *
 from kivy.uix.dropdown import *
 from kivy.uix.floatlayout import *
@@ -682,20 +683,18 @@ class PoolTable(Widget):
         self.lower_pos = (Window.size[0]-self.active_width,Window.size[1]-self.active_height)
         
         with self.canvas:
-            Rectangle(source="pool_table.png",pos=self.lower_pos, size=(self.active_width,self.active_height))
+            Rectangle(source= "C:\\Users\\George\\Pictures\\Hack_tests\\pool_table.png",pos=self.lower_pos, size=(self.active_width,self.active_height))
         
     def drawBall(self, ball):
-        def my_callback(dt):
-            self.obj = InstructionGroup()
-            self.obj.add(ball.color)
-            self.obj.add(Ellipse(pos=(self.lower_pos[0]+ball.pos[0]+ball.radius,self.lower_pos[1]+ball.pos[1]+ball.radius), size=(ball.radius, ball.radius)))
-            self.canvas.add(self.obj)
-            self.drawn_balls.append(self.obj)
-            pass
-        Clock.schedule_once(my_callback)
+        self.obj = InstructionGroup()
+        self.obj.add(ball.color)
+        self.obj.add(Ellipse(pos=(self.lower_pos[0]+ball.pos[0]+ball.radius,self.lower_pos[1]+ball.pos[1]+ball.radius), size=(ball.radius, ball.radius)))
+        self.canvas.add(self.obj)
+        self.drawn_balls.append(self.obj)
+
       
     def drawBalls(self):
-        for ball in self.balls: 
+        for ball in self.balls:
             self.drawBall(ball)
             
     def addBalls(self,manyballs):
@@ -709,25 +708,28 @@ class Ball():
         super(Ball, self).__init__()
         self.radius = 4*5.7
         self.color = color
-        self.pos = PoolTable.transform_coordinates(position)
+        self.pos = transform_coordinates(position)
+        print(self.pos)
     def display(self,a_widget):
         with a_widget.canvas:
             Ellipse(pos=self.pos, size=(self.radius, self.radius))
             
           
-class MyApp(App):
-    
-    def build(self):
-        self.widget = PoolTable(width = Window.size[0]/4, height = Window.size[1]*4/5)
-        return self.widget
-    
-    def drawBalls(self):
-        print("lol")
-        self.widget.drawBall()
-        
-    def addBalls(self, balls):
-        self.widget.addBalls(balls)
-        print(len(self.widget.balls))
+#===============================================================================
+# class MyApp(App):
+#     
+#     def build(self):
+#         self.widget = PoolTable(width = Window.size[0]/4, height = Window.size[1]*4/5)
+#         return self.widget
+#     
+#     def drawBalls(self):
+#         print("lol")
+#         self.widget.drawBall()
+#         
+#     def addBalls(self, balls):
+#         self.widget.addBalls(balls)
+#         print(len(self.widget.balls))
+#===============================================================================
       
       
 #===============================================================================
@@ -773,9 +775,10 @@ class MainScreen(GridLayout):
         self.top_row.add_widget(self.camera)
         self.top_widgets.append(self.camera)
 
-        self.table = Image(source = "C:\\Users\\George\\Pictures\\Hack_tests\\pool_table.png") #placeholder picture
-        self.top_row.add_widget(self.image)
-        self.top_widgets.append(self.image)
+        self.table = PoolTable() #placeholder picture
+        
+        self.top_row.add_widget(self.table)
+        self.top_widgets.append(self.table)
 
         self.button_camera = Button(text='Take a pic!', font_size=30)
         self.button_balls = Button(text='Add yellow balls', font_size=20)
@@ -812,23 +815,25 @@ class MainScreen(GridLayout):
                     proj = Projector(balls, cutBoard, url)
                     self.ballList = proj.newList
                     
+                    print(self.ballList)
+                    
                     for i in range(len(self.ballList)):
                         x = self.ballList[i][0] * 100
                         y = self.ballList[i][1] * 100
                         col = self.ballList[i][2]
                         if col == 'R':
-                            col = (255,255,0)
+                            col = Color(1,1,0)
                         elif col == "Y":
-                            col = (255,0,0)
+                            col = Color(1,0,0)
                         elif col == "B":
-                            col = (0,0,0)
+                            col = Color(0,0,0)
                         else:
-                            col = (255,255,255)
+                            col = Color(1,1,1)
                         self.ballList[i][2] = col
                     
                         self.ballList[i] = Ball(col, (x,y))
                     
-                    
+                    self.table.addBalls(self.ballList)
                                
                     
                 except Exception as e:
