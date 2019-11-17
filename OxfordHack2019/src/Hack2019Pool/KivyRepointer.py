@@ -11,6 +11,11 @@ from kivy.graphics import *
 from kivy.uix.image import *
 from kivy.uix.dropdown import *
 
+from kivy.cache import Cache
+Cache._categories['kv.image']['limit'] = 0
+Cache._categories['kv.image']['timeout'] = 1
+Cache._categories['kv.texture']['limit'] = 0
+Cache._categories['kv.texture']['timeout'] = 1
 
 import time
 
@@ -115,7 +120,7 @@ class ImageProcessor(object):
         except:
             pass
         #self.show_image("circle image2", im)
-        return allBalls
+        return allBalls, im
         
     def get_white_ball(self, im, tableWidth,expected):        
         whiteImage = im.copy()
@@ -574,33 +579,6 @@ class Projector(object):
     
         return qx, qy
 
-
-class MyBoxWidget(Widget):
-    
-    def __init__(self, url, balls):
-        Widget.__init__(self)
-        self.url = url
-        self.balls = balls
-        with self.canvas:
-            Rectangle(source=self.url, pos=(0, 0), size=self.size)
-            for b in self.balls:
-                Ellipse(pos = (0, 0))
-           
-    def on_touch_down(self, touch):
-        with self.canvas:
-            Rectangle(source=self.url, pos=(0, 0), size=self.size)        
-            d = 30.
-            touch.ud['line'] = Line(points=(touch.x, touch.y))
-    
-    def reload(self):
-        with self.canvas:
-            Rectangle(source=self.url, pos=(0, 0), size=self.size)       
-            Ellipse(size = (self.balls[0][2], self.balls[0][2]), pos = (0,0))
-                
-    def on_touch_move(self, touch):
-        touch.ud['line'].points += [touch.x, touch.y]
-
-
 class MainScreen(GridLayout):
 
     def __init__(self, **kwargs):
@@ -620,7 +598,7 @@ class MainScreen(GridLayout):
         #self.camera = Camera(play = True, resolution = (960,640), size_hint_x = 1.5)
         
         url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
-        self.camera = MyBoxWidget(url, [])
+        self.camera = Image(source = url)
         self.top_row.add_widget(self.camera)
         self.top_widgets.append(self.camera)
 
@@ -646,10 +624,8 @@ class MainScreen(GridLayout):
                 timestr = time.strftime("%Y%m%d_%H%M%S")
                 url = "IMG_{}.png".format(timestr)
                 url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
-                
                 print('changed')
-                self.ids.camera = MyBoxWidget(url, [])
-                self.button_camera.text = "loading..."
+                self.button_camera.text = "Loading..."
                 
                 try:
                     i = ImageProcessor(url)
@@ -657,17 +633,11 @@ class MainScreen(GridLayout):
                     lines = i.extract_board()
                     cutBoard = i.cut_board(lines)
                     
-                    cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg", cutBoard)
-                    
-                    self.camera.url = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg"
+                    balls,ballImage = i.label_balls(cutBoard, 2500)
+                    cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg", ballImage)
+                    self.camera = Image(source = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg")
                     self.camera.reload()
-                    
-                    balls = i.label_balls(cutBoard, 2500)
-                    
-                    self.camera.balls = balls
-                    self.camera.reload()
-                    
-                    
+                                        
                     proj = Projector(balls, cutBoard, url)
                 except Exception as e:
                     print(e)
@@ -681,6 +651,8 @@ class MainScreen(GridLayout):
             else:
                 self.button_camera.text = "Take a pic!"
                 self.camera.source = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
+            
+            self.camera.reload()
             #self.camera.play = not(self.camera.play)
         
         def swap_balls(instance):
