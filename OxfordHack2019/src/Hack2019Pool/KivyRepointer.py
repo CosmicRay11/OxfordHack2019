@@ -21,12 +21,6 @@ from kivy.core.window import Window
 
 
 
-from kivy.cache import Cache
-Cache._categories['kv.image']['limit'] = 0
-Cache._categories['kv.image']['timeout'] = 1
-Cache._categories['kv.texture']['limit'] = 0
-Cache._categories['kv.texture']['timeout'] = 1
-
 import time
 
 
@@ -666,12 +660,14 @@ class Projector(object):
 #----------------------------------------------------------------------------------------------------
 
 def transform_coordinates(pos):
-        return (pos[0]*4+47,pos[1]*4+47)
+        return (pos[0]*3+47,pos[1]*2+47)
 
 class PoolTable(Widget):
     
     def __init__(self):
         super(PoolTable, self).__init__()
+        
+        Window.size = (800,600)
         
         self.radius = 80
         self.balls = []
@@ -686,22 +682,24 @@ class PoolTable(Widget):
             Rectangle(source= "C:\\Users\\George\\Pictures\\Hack_tests\\pool_table.png",pos=self.lower_pos, size=(self.active_width,self.active_height))
         
     def drawBall(self, ball):
-        self.obj = InstructionGroup()
-        self.obj.add(ball.color)
-        self.obj.add(Ellipse(pos=(self.lower_pos[0]+ball.pos[0]+ball.radius,self.lower_pos[1]+ball.pos[1]+ball.radius), size=(ball.radius, ball.radius)))
-        self.canvas.add(self.obj)
-        self.drawn_balls.append(self.obj)
-
+        with self.canvas:
+            Ellipse(pos=(self.lower_pos[0]+ball.pos[0]+ball.radius,self.lower_pos[1]+ball.pos[1]+ball.radius), size=(ball.radius, ball.radius))
       
     def drawBalls(self):
         for ball in self.balls:
-            self.drawBall(ball)
+            with self.canvas:
+                ball.color
+                Ellipse(size=(ball.radius, ball.radius), pos=(self.lower_pos[0]+ball.pos[0]+ball.radius,self.lower_pos[1]+ball.pos[1]+ball.radius))
+
             
     def addBalls(self,manyballs):
-        while self.drawn_balls != []:
-            self.canvas.remove(self.drawn_balls.pop())
-        self.balls = manyballs
-        self.drawBalls()
+        self.canvas.clear()
+        with self.canvas:
+            Rectangle(source= "C:\\Users\\George\\Pictures\\Hack_tests\\pool_table.png",pos=self.lower_pos, size=(self.active_width,self.active_height))
+
+ 
+            self.balls = manyballs
+            self.drawBalls()
         
 class Ball():
     def __init__(self, color,position):
@@ -710,9 +708,11 @@ class Ball():
         self.color = color
         self.pos = transform_coordinates(position)
         print(self.pos)
+        
     def display(self,a_widget):
         with a_widget.canvas:
-            Ellipse(pos=self.pos, size=(self.radius, self.radius))
+            self.color
+            Ellipse(color= self.color, pos=(a_widget.lower_pos[0]+self.pos[0]+self.radius,a_widget.lower_pos[1]+self.pos[1]+self.radius), size=(self.radius, self.radius))
             
           
 #===============================================================================
@@ -818,8 +818,8 @@ class MainScreen(GridLayout):
                     print(self.ballList)
                     
                     for i in range(len(self.ballList)):
-                        x = self.ballList[i][0] * 100
-                        y = self.ballList[i][1] * 100
+                        x = int(self.ballList[i][0] * 100)
+                        y = int(self.ballList[i][1] * 100)
                         col = self.ballList[i][2]
                         if col == 'R':
                             col = Color(1,1,0)
