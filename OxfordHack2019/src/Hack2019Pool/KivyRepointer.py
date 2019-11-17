@@ -896,20 +896,33 @@ class MainScreen(GridLayout):
                 else:
                     col = 'white'
                 
-                self.ballList[i] = (ball.pos[0], ball.pos[1], col)
-                
+                self.ballList[i] = ((ball.pos[0], ball.pos[1]), col)
             
-            cue = turn(self.player.lower(), self.ballList)
-    
+            if self.player == 'Undecided':
+                colours = ['red', 'yellow']
+            else:
+                colours = [self.player.lower()]
             
+            dict = turn(colours, self.ballList)
             
-            #cuePoint = transform_coordinates(cuePoint)
-            #whitePoint = transform_coordinates(whitePoint)
-            #pocketPoint = transform_coordinates(pocketPoint)
+            cuePoint = dict['cue position']
+            whitePoint = dict['collision point']
+            pocketPoint = dict['target hole']
+            
+            print(cuePoint, whitePoint, pocketPoint)
+            cuePoint = [cuePoint[0]/2, cuePoint[1]/2]
+            whitePoint = [whitePoint[0]/2, whitePoint[1]/2]
+            pocketPoint = [pocketPoint[0]/2, pocketPoint[1]/2]
+            
+            cuePoint = transform_coordinates(cuePoint)
+            whitePoint = transform_coordinates(whitePoint)
+            pocketPoint = transform_coordinates(pocketPoint)
             
             with self.canvas:
-                Line(points=[100, 100, 300, 400])
-                #Line(points=[cuePoint[0], cuePoint[1], 
+                p1 = [cuePoint[0]+self.table.lower_pos[0], cuePoint[1]+self.table.lower_pos[1], whitePoint[0]+self.table.lower_pos[0], whitePoint[1]+self.table.lower_pos[1]]
+                print(p1)
+                Line(points=p1)
+                Line(points=[whitePoint[0]+self.table.lower_pos[0], whitePoint[1]+self.table.lower_pos[1], pocketPoint[0]+self.table.lower_pos[0], pocketPoint[1]+self.table.lower_pos[1]])
             
             self.button_calculate.bind(on_press = calculate)
             self.button_calculate.text = "Calculate!"
@@ -1288,8 +1301,10 @@ def turn(colours, ball_coords):
     cue = None
     for ball in ball_coords:
         balls.append(Ball2(ball[0],ball[1]))
+        print(ball[1])
         if ball[1] == 'white':
             cue = Ball2(ball[0],ball[1])
+            print('executed')
     #balls is a list of elements of the class ball
     
     if cue != None:
