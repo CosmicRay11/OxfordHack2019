@@ -624,6 +624,8 @@ class MainScreen(GridLayout):
                 try:
                     i = ImageProcessor(url)
                     
+                    self.button_camera.text = "loading..."
+                    
                     lines = i.extract_board()
                     cutBoard = i.cut_board(lines)
                     
@@ -638,7 +640,7 @@ class MainScreen(GridLayout):
                     print(e)
                     self.button_camera.text = "Try again"
                 
-                if self.button_camera.text == "Take a pic!":
+                if self.button_camera.text in ["Take a pic!", "Loading..."]:
                     self.button_camera.text = "Retake?"
             
                 
