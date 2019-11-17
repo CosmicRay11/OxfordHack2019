@@ -5,15 +5,17 @@ from kivy.uix.gridlayout import *
 from kivy.uix.label import *
 from kivy.uix.textinput import *
 from kivy.uix.button import *
+from kivy.uix.widget import Widget
 from kivy.uix.camera import *
+from kivy.graphics import *
 from kivy.uix.image import *
 from kivy.uix.dropdown import *
+
 
 import time
 
 
 import random
-import PIL
 import cv2 as cv
 import numpy as np
 from cv2 import line
@@ -554,7 +556,7 @@ class Projector(object):
         
         
         
-        plt.show()
+        #plt.show()
     
     def project(self, image, x, y):
         width, height = image.shape[0], image.shape[1]
@@ -571,6 +573,33 @@ class Projector(object):
         qy = oy + -np.sin(radians) * (x - ox) + np.cos(radians) * (y - oy)
     
         return qx, qy
+
+
+class MyBoxWidget(Widget):
+    
+    def __init__(self, url, balls):
+        Widget.__init__(self)
+        self.url = url
+        self.balls = balls
+        with self.canvas:
+            Rectangle(source=self.url, pos=(0, 0), size=self.size)
+            for b in self.balls:
+                Ellipse(pos = (0, 0))
+           
+    def on_touch_down(self, touch):
+        with self.canvas:
+            Rectangle(source=self.url, pos=(0, 0), size=self.size)        
+            d = 30.
+            touch.ud['line'] = Line(points=(touch.x, touch.y))
+    
+    def reload(self):
+        with self.canvas:
+            Rectangle(source=self.url, pos=(0, 0), size=self.size)       
+            Ellipse(size = (self.balls[0][2], self.balls[0][2]), pos = (0,0))
+                
+    def on_touch_move(self, touch):
+        touch.ud['line'].points += [touch.x, touch.y]
+
 
 class MainScreen(GridLayout):
 
@@ -590,8 +619,8 @@ class MainScreen(GridLayout):
 
         #self.camera = Camera(play = True, resolution = (960,640), size_hint_x = 1.5)
         
-        url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"    
-        self.camera = Image(source = url)
+        url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
+        self.camera = MyBoxWidget(url, [])
         self.top_row.add_widget(self.camera)
         self.top_widgets.append(self.camera)
 
@@ -619,21 +648,25 @@ class MainScreen(GridLayout):
                 url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
                 
                 print('changed')
-                self.ids.camera = Image(source = url)
+                self.ids.camera = MyBoxWidget(url, [])
+                self.button_camera.text = "loading..."
                 
                 try:
                     i = ImageProcessor(url)
-                    
-                    self.button_camera.text = "loading..."
                     
                     lines = i.extract_board()
                     cutBoard = i.cut_board(lines)
                     
                     cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg", cutBoard)
                     
-                    self.camera.source = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg"
+                    self.camera.url = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg"
                     self.camera.reload()
+                    
                     balls = i.label_balls(cutBoard, 2500)
+                    
+                    self.camera.balls = balls
+                    self.camera.reload()
+                    
                     
                     proj = Projector(balls, cutBoard, url)
                 except Exception as e:
@@ -684,8 +717,8 @@ class MainScreen(GridLayout):
         
         self.button_calculate.bind(on_press = calculate)
 
-
-
+        
+            
 
         self.button_player = Button(text="Player: " + self.player)
         self.bottom_row.add_widget(self.button_player)
