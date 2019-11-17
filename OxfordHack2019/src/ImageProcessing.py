@@ -499,42 +499,27 @@ class ImageProcessor(object):
 
 class Projector(object):
 
-    def __init__(self, balls, image, lines):
-        print(lines)
+    def __init__(self, balls, image, url):
         #print(lines)
-        angle = np.arctan(lines[3][0][0])
+        
         #print(angle)
-        #self.show_image('not rotated', dst)
-        rows,cols = image.shape[0], image.shape[1]
-
-        M = cv.getRotationMatrix2D((cols/2,rows/2),-angle,1)
-        rotatedIm = cv.warpAffine(image,M,(cols,rows))
+        
+        i = ImageProcessor(url)
+        i.initial = image
+        lines = i.extract_board()
+        angle = np.arctan(lines[3][0][0])
+        
+        i.display_xy_lines(image, lines)
+    
         
         for ball in balls:
             x,y,rad,type = ball
-            print(image.shape)
-            x,y = self.rotate_coords((x,y), (image.shape[0]//2, image.shape[1]//2), -angle)
-            
             x1 = (y-lines[0][0][1])/lines[0][0][0]
             x2 = (y-lines[1][0][1])/lines[1][0][0]
-            
-            print(x,y, x1,x2)
-            
             dist = abs (x1-x2)
-            ratio = (x-x1) / dist
-            print(ratio)
+            xratio = (x-x1) / dist
             
-        imCopy = rotatedIm.copy()
-        for line in lines:
-            for (m,c) in line:
-                x1 = -10000
-                y1 = int(m*x1 + c)
-                x2 = 10000
-                y2 = int(m*x2 + c)
-            
-            cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
-    
-        cv.imshow("line image" + str(random.randint(0,1000)), cv.resize(imCopy,(0,0), fx=0.2, fy=0.2))
+            print(xratio)
     
     def rotate_coords(self, coords, origin, radians):
         x, y = coords
@@ -560,7 +545,7 @@ if __name__ == "__main__":
         i.show_image("cut board", cutBoard)
         balls = i.label_balls(cutBoard, 2500)
         
-        proj = Projector(balls, cutBoard, lines)
+        proj = Projector(balls, cutBoard, url)
         
         cv.waitKey(0)
         cv.destroyAllWindows()
