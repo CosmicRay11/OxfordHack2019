@@ -523,7 +523,9 @@ class Projector(object):
             dist = abs (x1-x2)
             xratio = (x-x1) / dist
             
-            yratio = self.project(image, x,y, lines)
+            yratio = 1 - (y / image.shape[1])**0.4
+            
+            #self.project(image, x,y, lines)
             
             print('x',xratio)
             print('y',yratio)
@@ -536,11 +538,11 @@ class Projector(object):
          
         fig, ax = plt.subplots(figsize=(12,6))
          
-        plt.plot(xList, yList, marker='x', color='black', linestyle='None', markersize = 5.0)
+        plt.plot(yList, xList, marker='x', color='black', linestyle='None', markersize = 5.0)
          
         axes = plt.gca()
-        axes.set_xlim([0,2])
-        axes.set_ylim([0,1])
+        axes.set_xlim([0,1])
+        axes.set_ylim([0,2])
          
          
          
@@ -561,15 +563,13 @@ class Projector(object):
         cd = 1
         BD = self.get_dist(B,D)
         
-        k = AC*BD / (BC*AD)
+        bc = cd / ((ad*AC*BD / (ac*BC*AD)) - 1)
 
-       
-        if self.get_dist(A,B) > AC:
-            x = 1 - (1 / (2*k - 1))
-        else:
-            x = (1 + k) / (0.5 + k)
-        
-        return x
+        dis = 1- bc
+
+        print('bc is  ', bc)
+
+        return dis
     
     def get_dist(self, coord1, coord2):
         return abs(coord1[1]-coord2[1])

@@ -529,7 +529,7 @@ class Projector(object):
         lines = i.extract_board()
         angle = np.arctan(lines[3][0][0])
         
-        #i.display_xy_lines(image, lines)
+        i.display_xy_lines(image, lines)
     
         xList = []
         yList = []
@@ -540,36 +540,110 @@ class Projector(object):
             dist = abs (x1-x2)
             xratio = (x-x1) / dist
             
-            yratio = y / image.shape[1]
+            yratio = 1 - (y / image.shape[1]) ** 0.5
+            
+            #self.project(image, x, y, lines)
             
             print('x',xratio)
             print('y',yratio)
         
             xList.append(yratio*2)
             yList.append(xratio)
-            
-        xList = np.array(xList)
-        yList = np.array(yList)
-        
-        fig, ax = plt.subplots(figsize=(12,6))
-        
-        plt.plot(xList, yList, marker='x', color='black', linestyle='None', markersize = 5.0)
-        
-        axes = plt.gca()
-        axes.set_xlim([0,2])
-        axes.set_ylim([0,1])
-        
-        
-        
-        #plt.show()
+             
+        self.xList = np.array(xList)
+        self.yList = np.array(yList)
+         
+        #=======================================================================
+        # fig, ax = plt.subplots(figsize=(12,6))
+        #  
+        # plt.plot(yList, xList, marker='x', color='black', linestyle='None', markersize = 5.0)
+        #  
+        # axes = plt.gca()
+        # axes.set_xlim([0,1])
+        # axes.set_ylim([0,2])
+        #  
+        #  
+        #  
+        # plt.show()
+        #=======================================================================
     
-    def project(self, image, x, y):
+    def project(self, image, x, y, lines):
         width, height = image.shape[0], image.shape[1]
         A = (width//2, height)
         B = (x,y)
-        C = A
+        C = self.get_halfway(image, lines)
         D = (width//2, 0)
+        
+        ac = 1
+        BC = self.get_dist(B,C)
+        AD = self.get_dist(A,D)
+        AC = self.get_dist(A,C)
+        ad = 2
+        cd = 1
+        BD = self.get_dist(B,D)
+        
+        bc = cd / ((ad*AC*BD / (ac*BC*AD)) - 1)
+
+        dis = 1- bc
+
+        print('bc is  ', bc)
+
+        return dis
     
+    def get_dist(self, coord1, coord2):
+        return abs(coord1[1]-coord2[1])
+    
+    def get_halfway(self,image, lines):
+        height,width = image.shape[0], image.shape[1]
+        cv.imshow("im", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
+        
+        m,c = lines[1][0]
+        x1 = -10000
+        y1 = int(m*x1 + c)
+        x2 = 10000
+        y2 = int(m*x2 + c)
+        
+        cv.line(image,(x1,y1),(x2,y2),(0,0,255),5)
+        
+        holex,holey = [], []
+        
+        for y in range(height//6, height//3, 1):
+            x = int((y-c)/ m) - 5
+            if x > 0 and x < width:
+                b,g,r = image[y,x]
+                if b<30 and g < 30 and r <30:
+                    holex.append(x)
+                    holey.append(y)
+            
+        if holex != [] and holey != []:
+            hole1 = [sum(holex) / len(holex), sum(holey)/ len(holey)]
+        else:
+            hole1 = None
+            raise Exception ("Ahhhh")
+        
+        
+        m,c = lines[0][0]
+        holex,holey = [], []
+        
+        for y in range(height//6, height//3, 1):
+            x = int((y-c)/ m) + 5
+            if x > 0 and x < width:
+                b,g,r = image[y,x]
+                if b<30 and g < 30 and r <30:
+                    holex.append(x)
+                    holey.append(y)
+            
+        if holex != [] and holey != []:
+            hole2 = [sum(holex) / len(holex), sum(holey)/ len(holey)]
+        else:
+            hole2 = None
+            raise Exception ("Ahhhh")
+        
+        halfWayMark = [width//2, int(hole1[1] + hole2[1]+50)//2]
+        cv.circle(image, (halfWayMark[0],halfWayMark[1]), 10, (0,255,255), 3 )
+        cv.imshow("im2", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
+        return halfWayMark
+        
     def rotate_coords(self, coords, origin, radians):
         x, y = coords
         ox, oy = origin
@@ -578,7 +652,7 @@ class Projector(object):
         qy = oy + -np.sin(radians) * (x - ox) + np.cos(radians) * (y - oy)
     
         return qx, qy
-
+    
 class MainScreen(GridLayout):
 
     def __init__(self, **kwargs):
@@ -635,10 +709,14 @@ class MainScreen(GridLayout):
                     
                     balls,ballImage = i.label_balls(cutBoard, 2500)
                     cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg", ballImage)
+                    cv.imshow("ball image", ballImage)
                     self.camera = Image(source = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg")
-                    self.camera.reload()
                                         
                     proj = Projector(balls, cutBoard, url)
+                    self.xs = proj.xs
+                    self.ys = proj.ys
+                    
+                    
                 except Exception as e:
                     print(e)
                     self.button_camera.text = "Try again"
@@ -688,9 +766,6 @@ class MainScreen(GridLayout):
             self.button_calculate.text = "Calculate!"
         
         self.button_calculate.bind(on_press = calculate)
-
-        
-            
 
         self.button_player = Button(text="Player: " + self.player)
         self.bottom_row.add_widget(self.button_player)
