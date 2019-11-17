@@ -660,10 +660,10 @@ class Projector(object):
 #----------------------------------------------------------------------------------------------------
 
 def transform_coordinates(pos):
-        return (2.2*pos[0]+12,3.5*pos[1] -180)
+        return (2.2*pos[0]+12, 3.5*pos[1] -180)
     
-    
-    #
+def inverse_transform(pos):
+    return ((pos[0]-12)/2.2,(pos[1]+180)/3.5)
 
 class PoolTable(Widget):
     
@@ -896,7 +896,8 @@ class MainScreen(GridLayout):
                 else:
                     col = 'white'
                 
-                self.ballList[i] = ((ball.pos[0], ball.pos[1]), col)
+                ballPos = inverse_transform(ball.pos)
+                self.ballList[i] = [[ballPos[0], ballPos[1]], col]
             
             if self.player == 'Undecided':
                 colours = ['red', 'yellow']
@@ -905,24 +906,26 @@ class MainScreen(GridLayout):
             
             dict = turn(colours, self.ballList)
             
+            print(dict)
+            
             cuePoint = dict['cue position']
             whitePoint = dict['collision point']
             pocketPoint = dict['target hole']
             
             print(cuePoint, whitePoint, pocketPoint)
-            cuePoint = [cuePoint[0]/2, cuePoint[1]/2]
-            whitePoint = [whitePoint[0]/2, whitePoint[1]/2]
-            pocketPoint = [pocketPoint[0]/2, pocketPoint[1]/2]
+            cuePoint = [cuePoint[0], cuePoint[1]]
+            whitePoint = [whitePoint[0], whitePoint[1]]
+            pocketPoint = [pocketPoint[0], pocketPoint[1]]
             
             cuePoint = transform_coordinates(cuePoint)
             whitePoint = transform_coordinates(whitePoint)
             pocketPoint = transform_coordinates(pocketPoint)
             
             with self.canvas:
-                p1 = [cuePoint[0]+self.table.lower_pos[0], cuePoint[1]+self.table.lower_pos[1], whitePoint[0]+self.table.lower_pos[0], whitePoint[1]+self.table.lower_pos[1]]
+                p1 = [cuePoint[0]+self.table.lower_pos[0]+4*5.7, cuePoint[1]+self.table.lower_pos[1]+4*5.7, whitePoint[0]+self.table.lower_pos[0]+4*5.7, 4*5.7+ whitePoint[1]+self.table.lower_pos[1]]
                 print(p1)
                 Line(points=p1)
-                Line(points=[whitePoint[0]+self.table.lower_pos[0], whitePoint[1]+self.table.lower_pos[1], pocketPoint[0]+self.table.lower_pos[0], pocketPoint[1]+self.table.lower_pos[1]])
+                Line(points=[whitePoint[0]+self.table.lower_pos[0]+4*5.7, whitePoint[1]+self.table.lower_pos[1]+4*5.7, pocketPoint[0]+4*5.7+self.table.lower_pos[0], pocketPoint[1]+self.table.lower_pos[1]+4*5.7])
             
             self.button_calculate.bind(on_press = calculate)
             self.button_calculate.text = "Calculate!"
@@ -1306,7 +1309,7 @@ def turn(colours, ball_coords):
             cue = Ball2(ball[0],ball[1])
             print('executed')
     #balls is a list of elements of the class ball
-    
+    print(list(ball.pos for ball in balls))
     if cue != None:
         return find_optimal(balls,cue,colours)
     else:
