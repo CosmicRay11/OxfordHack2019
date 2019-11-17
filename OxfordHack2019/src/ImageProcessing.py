@@ -500,7 +500,7 @@ class ImageProcessor(object):
 class Projector(object):
 
     def __init__(self, balls, image, lines):
-        print(lines[0])
+        print(lines)
         #print(lines)
         angle = np.arctan(lines[3][0][0])
         #print(angle)
@@ -512,16 +512,29 @@ class Projector(object):
         
         for ball in balls:
             x,y,rad,type = ball
-            print(x,y)
+            print(image.shape)
             x,y = self.rotate_coords((x,y), (image.shape[0]//2, image.shape[1]//2), -angle)
             
-            x1 = (y-lines[2][0][0])/lines[2][0][1]
-            x2 = (y-lines[3][0][0])/lines[3][0][1]
+            x1 = (y-lines[0][0][1])/lines[0][0][0]
+            x2 = (y-lines[1][0][1])/lines[1][0][0]
             
             print(x,y, x1,x2)
-        
             
-        cv.imshow("lines", cv.resize(image, (0,0), fx=0.2, fy=0.2))
+            dist = abs (x1-x2)
+            ratio = (x-x1) / dist
+            print(ratio)
+            
+        imCopy = rotatedIm.copy()
+        for line in lines:
+            for (m,c) in line:
+                x1 = -10000
+                y1 = int(m*x1 + c)
+                x2 = 10000
+                y2 = int(m*x2 + c)
+            
+            cv.line(imCopy,(x1,y1),(x2,y2),(0,0,255),5)
+    
+        cv.imshow("line image" + str(random.randint(0,1000)), cv.resize(imCopy,(0,0), fx=0.2, fy=0.2))
     
     def rotate_coords(self, coords, origin, radians):
         x, y = coords
