@@ -603,7 +603,6 @@ class MainScreen(GridLayout):
 
 
         def take_pic(instance):
-            print(type(self.camera))
             if self.button_camera.text == "Take a pic!":
                 if self.camera.play:
                     capture(self)
@@ -611,6 +610,7 @@ class MainScreen(GridLayout):
                     url = "IMG_{}.png".format(timestr)
                     url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
                     
+                    print('changed')
                     self.camera = Image(source = url)
                     
                     try:
