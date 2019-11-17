@@ -561,17 +561,18 @@ class Projector(object):
         cd = 1
         BD = self.get_dist(B,D)
         
+        k = AC*BD / (BC*AD)
+
+       
+        if self.get_dist(A,B) > AC:
+            x = 1 - (1 / (2*k - 1))
+        else:
+            x = (1 + k) / (0.5 + k)
         
-        bc = cd / ((ad*AC*BD / (ac*BC*AD)) - 1)
-        
-        dis = 1- bc
-        
-        print('bc is  ', bc)
-        
-        return dis
+        return x
     
     def get_dist(self, coord1, coord2):
-        return ((coord1[0]-coord2[0])**2 + (coord1[1] - coord2[1])**2)**0.5
+        return abs(coord1[1]-coord2[1])
     
     def get_halfway(self,image, lines):
         height,width = image.shape[0], image.shape[1]

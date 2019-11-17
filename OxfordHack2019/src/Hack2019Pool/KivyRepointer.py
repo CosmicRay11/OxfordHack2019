@@ -588,7 +588,10 @@ class MainScreen(GridLayout):
         self.top_widgets = []
         self.bottom_widgets = []
 
-        self.camera = Camera(play = True, resolution = (960,640), size_hint_x = 1.5)
+        #self.camera = Camera(play = True, resolution = (960,640), size_hint_x = 1.5)
+        
+        url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"    
+        self.camera = Image(source = url)
         self.top_row.add_widget(self.camera)
         self.top_widgets.append(self.camera)
 
@@ -611,34 +614,38 @@ class MainScreen(GridLayout):
 
         def take_pic(instance):
             if self.button_camera.text == "Take a pic!":
-                if self.camera.play:
-                    capture(self)
-                    timestr = time.strftime("%Y%m%d_%H%M%S")
-                    url = "IMG_{}.png".format(timestr)
-                    url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
-                    
-                    print('changed')
-                    self.camera = Image(source = url)
-                    
-                    try:
-                        i = ImageProcessor(url)
-                        
-                        lines = i.extract_board()
-                        cutBoard = i.cut_board(lines)
-                        balls = i.label_balls(cutBoard, 2500)
-                        
-                        proj = Projector(balls, cutBoard, url)
-                    except:
-                        self.button_camera.text = "Try again"
-                    
-                    if self.button_camera.text == "Take a pic!":
-                        self.button_camera.text = "Retake?"
+                timestr = time.strftime("%Y%m%d_%H%M%S")
+                url = "IMG_{}.png".format(timestr)
+                url = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
                 
+                print('changed')
+                self.ids.camera = Image(source = url)
+                
+                try:
+                    i = ImageProcessor(url)
+                    
+                    lines = i.extract_board()
+                    cutBoard = i.cut_board(lines)
+                    
+                    cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg", cutBoard)
+                    
+                    self.camera.source = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg"
+                    self.camera.reload()
+                    balls = i.label_balls(cutBoard, 2500)
+                    
+                    proj = Projector(balls, cutBoard, url)
+                except Exception as e:
+                    print(e)
+                    self.button_camera.text = "Try again"
+                
+                if self.button_camera.text == "Take a pic!":
+                    self.button_camera.text = "Retake?"
+            
                 
                 
             else:
                 self.button_camera.text = "Take a pic!"
-                self.camera = Camera(play = True, resolution = (960,640), size_hint_x = 1.5)
+                self.camera.source = "C:\\Users\\George\\Pictures\\Hack_tests\\IMG_20191115_191414.jpg"
             #self.camera.play = not(self.camera.play)
         
         def swap_balls(instance):
