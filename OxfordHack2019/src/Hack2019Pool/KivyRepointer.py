@@ -1,5 +1,8 @@
 from kivy.app import App
 
+from kivy.config import Config
+Config.set("graphics", "resizable", False)
+
 from kivy.uix.boxlayout import *
 from kivy.uix.gridlayout import *
 from kivy.uix.label import *
@@ -10,6 +13,12 @@ from kivy.uix.camera import *
 from kivy.graphics import *
 from kivy.uix.image import *
 from kivy.uix.dropdown import *
+from kivy.uix.floatlayout import *
+
+from kivy.clock import Clock
+from kivy.core.window import Window
+
+
 
 from kivy.cache import Cache
 Cache._categories['kv.image']['limit'] = 0
@@ -531,8 +540,8 @@ class Projector(object):
         
         i.display_xy_lines(image, lines)
     
-        xList = []
-        yList = []
+        newList = []
+        
         for ball in balls:
             x,y,rad,type = ball
             x1 = (y-lines[0][0][1])/lines[0][0][0]
@@ -547,11 +556,9 @@ class Projector(object):
             print('x',xratio)
             print('y',yratio)
         
-            xList.append(yratio*2)
-            yList.append(xratio)
-             
-        self.xList = np.array(xList)
-        self.yList = np.array(yList)
+            newList.append([xratio, yratio*2, type])
+
+        self.newList = newList
          
         #=======================================================================
         # fig, ax = plt.subplots(figsize=(12,6))
@@ -595,7 +602,7 @@ class Projector(object):
     
     def get_halfway(self,image, lines):
         height,width = image.shape[0], image.shape[1]
-        cv.imshow("im", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
+        #cv.imshow("im", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
         
         m,c = lines[1][0]
         x1 = -10000
@@ -641,7 +648,7 @@ class Projector(object):
         
         halfWayMark = [width//2, int(hole1[1] + hole2[1]+50)//2]
         cv.circle(image, (halfWayMark[0],halfWayMark[1]), 10, (0,255,255), 3 )
-        cv.imshow("im2", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
+        #cv.imshow("im2", cv.resize(image.copy(), (0,0), fx=0.2, fy=0.2))
         return halfWayMark
         
     def rotate_coords(self, coords, origin, radians):
@@ -652,7 +659,97 @@ class Projector(object):
         qy = oy + -np.sin(radians) * (x - ox) + np.cos(radians) * (y - oy)
     
         return qx, qy
+
+
+
+#----------------------------------------------------------------------------------------------------
+
+def transform_coordinates(pos):
+        return (pos[0]*4+47,pos[1]*4+47)
+
+class PoolTable(Widget):
     
+    def __init__(self):
+        super(PoolTable, self).__init__()
+        
+        self.radius = 80
+        self.balls = []
+        self.drawn_balls = []
+        self.active_height = Window.size[1]*0.8
+        self.active_width = self.active_height/960*562
+        self.active_size = (self.active_width,self.active_height)
+        print(self.active_size)
+        self.lower_pos = (Window.size[0]-self.active_width,Window.size[1]-self.active_height)
+        
+        with self.canvas:
+            Rectangle(source="pool_table.png",pos=self.lower_pos, size=(self.active_width,self.active_height))
+        
+    def drawBall(self, ball):
+        def my_callback(dt):
+            self.obj = InstructionGroup()
+            self.obj.add(ball.color)
+            self.obj.add(Ellipse(pos=(self.lower_pos[0]+ball.pos[0]+ball.radius,self.lower_pos[1]+ball.pos[1]+ball.radius), size=(ball.radius, ball.radius)))
+            self.canvas.add(self.obj)
+            self.drawn_balls.append(self.obj)
+            pass
+        Clock.schedule_once(my_callback)
+      
+    def drawBalls(self):
+        for ball in self.balls: 
+            self.drawBall(ball)
+            
+    def addBalls(self,manyballs):
+        while self.drawn_balls != []:
+            self.canvas.remove(self.drawn_balls.pop())
+        self.balls = manyballs
+        self.drawBalls()
+        
+class Ball():
+    def __init__(self, color,position):
+        super(Ball, self).__init__()
+        self.radius = 4*5.7
+        self.color = color
+        self.pos = PoolTable.transform_coordinates(position)
+    def display(self,a_widget):
+        with a_widget.canvas:
+            Ellipse(pos=self.pos, size=(self.radius, self.radius))
+            
+          
+class MyApp(App):
+    
+    def build(self):
+        self.widget = PoolTable(width = Window.size[0]/4, height = Window.size[1]*4/5)
+        return self.widget
+    
+    def drawBalls(self):
+        print("lol")
+        self.widget.drawBall()
+        
+    def addBalls(self, balls):
+        self.widget.addBalls(balls)
+        print(len(self.widget.balls))
+      
+      
+#===============================================================================
+# if __name__=='__main__':
+#     app = MyApp()
+#     app.balls = 3
+#     app.build() 
+# ​
+#     ball = Ball()
+#     ball.colorize(Color(1,1,0))
+#     ball.position((20,30))
+#     #ball.display(app.widget)
+#     
+#     
+#     app.addBalls(ball)
+#     app.drawBalls()
+#         
+#     
+#     app.run()
+#===============================================================================
+
+
 class MainScreen(GridLayout):
 
     def __init__(self, **kwargs):
@@ -676,7 +773,7 @@ class MainScreen(GridLayout):
         self.top_row.add_widget(self.camera)
         self.top_widgets.append(self.camera)
 
-        self.image = Image(source = "table.png") #placeholder picture
+        self.table = Image(source = "C:\\Users\\George\\Pictures\\Hack_tests\\pool_table.png") #placeholder picture
         self.top_row.add_widget(self.image)
         self.top_widgets.append(self.image)
 
@@ -709,13 +806,30 @@ class MainScreen(GridLayout):
                     
                     balls,ballImage = i.label_balls(cutBoard, 2500)
                     cv.imwrite("C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg", ballImage)
-                    cv.imshow("ball image", ballImage)
+                    #cv.imshow("ball image", ballImage)
                     self.camera = Image(source = "C:\\Users\\George\\Pictures\\Hack_tests\\processed.jpg")
                                         
                     proj = Projector(balls, cutBoard, url)
-                    self.xs = proj.xs
-                    self.ys = proj.ys
+                    self.ballList = proj.newList
                     
+                    for i in range(len(self.ballList)):
+                        x = self.ballList[i][0] * 100
+                        y = self.ballList[i][1] * 100
+                        col = self.ballList[i][2]
+                        if col == 'R':
+                            col = (255,255,0)
+                        elif col == "Y":
+                            col = (255,0,0)
+                        elif col == "B":
+                            col = (0,0,0)
+                        else:
+                            col = (255,255,255)
+                        self.ballList[i][2] = col
+                    
+                        self.ballList[i] = Ball(col, (x,y))
+                    
+                    
+                               
                     
                 except Exception as e:
                     print(e)
@@ -723,8 +837,6 @@ class MainScreen(GridLayout):
                 
                 if self.button_camera.text in ["Take a pic!", "Loading..."]:
                     self.button_camera.text = "Retake?"
-            
-                
                 
             else:
                 self.button_camera.text = "Take a pic!"
@@ -775,6 +887,11 @@ class MainScreen(GridLayout):
             self.player = PLAYERS[(PLAYERS.index(self.player)+1)%3]
             self.button_player.text = "Player: " + self.player
         self.button_player.bind(on_press = change_player)
+
+ 
+ 
+
+
 
 
 class MyApp(App):
