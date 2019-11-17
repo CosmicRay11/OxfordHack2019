@@ -9,6 +9,9 @@ import cv2 as cv
 import numpy as np
 from cv2 import line
 
+import matplotlib
+import matplotlib.pyplot as plt
+
 class ImageProcessor(object):
 
 
@@ -511,7 +514,8 @@ class Projector(object):
         
         i.display_xy_lines(image, lines)
     
-        
+        xList = []
+        yList = []
         for ball in balls:
             x,y,rad,type = ball
             x1 = (y-lines[0][0][1])/lines[0][0][0]
@@ -519,7 +523,28 @@ class Projector(object):
             dist = abs (x1-x2)
             xratio = (x-x1) / dist
             
-            print(xratio)
+            yratio = y / image.shape[1]
+            
+            print('x',xratio)
+            print('y',yratio)
+        
+            xList.append(yratio*2)
+            yList.append(xratio)
+            
+        xList = np.array(xList)
+        yList = np.array(yList)
+        
+        fig, ax = plt.subplots(figsize=(12,6))
+        
+        plt.plot(xList, yList, marker='x', color='black', linestyle='None', markersize = 5.0)
+        
+        axes = plt.gca()
+        axes.set_xlim([0,2])
+        axes.set_ylim([0,1])
+        
+        
+        
+        plt.show()
     
     def rotate_coords(self, coords, origin, radians):
         x, y = coords
